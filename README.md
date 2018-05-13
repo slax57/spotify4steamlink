@@ -21,7 +21,8 @@ This code allows to build an app that you can install and run on your _steamlink
 This app starts _librespot_ as a background program, and pipes the audio to the first audio device it finds.
 You juste have to use the _spotify connect_ (from your phone or a computer, using the official Spotify application) to start a playlist.
 Once you're done, you can exit the app by pressing any key on your keyboard or any buttons on your gamepad (should be compatible whith the Steam gamepad).
-And that's it for now! :) No current track or status information for now, it's just a headless player!
+
+**Be aware that this is all the app does for now! There is no current track or status information displayed, it's basically just a headless player, and the only thing displayed on the TV is a static image.**
 
 # Instructions
 ## Building
