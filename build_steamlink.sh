@@ -17,7 +17,8 @@ export DESTDIR="${PWD}/steamlink/apps/spotify"
 # Copy the files to the app directory
 mkdir -p "${DESTDIR}"
 cp -v testspriteminimal "${DESTDIR}"
-cp -v spotify2.bmp "${DESTDIR}"
+cp -v spotify3.bmp "${DESTDIR}"
+cp -v consolas.ttf "${DESTDIR}"
 cp -v start_librespot.sh "${DESTDIR}"
 
 cp -v icon2.png "${DESTDIR}/icon.png" 

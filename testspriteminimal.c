@@ -18,29 +18,58 @@
 #endif
 
 #include "SDL.h"
+#include "SDL_ttf.h"
 
-#define WINDOW_WIDTH    640
-#define WINDOW_HEIGHT   480
+#define INITIAL_WINDOW_WIDTH    640
+#define INITIAL_WINDOW_HEIGHT   480
 
-#define AUDIO_SAMPLES   4096
+#define AUDIO_SAMPLES           4096
+
+#define LIBRESPOT_START_CMD     "/home/steam/librespot-org-build/arm-unknown-linux-gnueabihf/release/librespot --cache /var/cache --disable-audio-cache --name steamlink --disable-discovery --bitrate 320 --initial-volume 85 --backend pipe 2>/tmp/spotify.log"
+#define LIBRESPOT_KILL_CMD      "pidof /home/steam/librespot-org-build/arm-unknown-linux-gnueabihf/release/librespot | xargs kill"
+#define LIBRESPOT_LOG_FILE      "/tmp/spotify.log"
+
+#define BACKGROUND_BMP_FILE     "spotify3.bmp"
+
+#define FONT_FILE               "consolas.ttf"
+#define FONT_SIZE               18
 
 // Disable this flag when publishing to steamlink
 //#define TEST_MODE
 
+
+/* -- Global variables -- */
+
 static SDL_Texture *sprite;
 static int sprite_w, sprite_h;
-
 SDL_Renderer *renderer;
 int done;
-
-// variable declarations
 static FILE *audio_buf; // global pointer to the audio buffer to be played
+TTF_Font *font = NULL;
+static FILE *spotify_log_file;
+SDL_Color text_color = {255, 255, 255}; // white
+SDL_Surface *text_surf = NULL;
+static int text_square_pos_x, text_square_pos_y, text_square_pos_w, text_square_pos_h;
+
+
+/* -- Functions -- */
 
 /* Call this instead of exit(), so we can clean up SDL: atexit() is evil. */
 static void
 quit(int rc)
 {
     exit(rc);
+}
+
+void compute_text_square_dimensions(SDL_Window* window)
+{
+    int window_w, window_h;
+    SDL_GetWindowSize(window, &window_w, &window_h);
+    // Converting dimensions from a 1920*1080 screen if necessary
+    text_square_pos_x = 680 * window_w / 1920;
+    text_square_pos_y = 126 * window_h / 1080;
+    text_square_pos_w = 1000 * window_w / 1920;
+    text_square_pos_h = 906 * window_h / 1080;
 }
 
 int
@@ -70,7 +99,68 @@ LoadSprite(char *file, SDL_Renderer *renderer)
     return (0);
 }
 
-// Render a sprite in position (0, 0) on a black screen
+// Read the tail of the log file
+char* tailLogFile()
+{
+  long lSize;
+  char * buffer;
+  size_t result;
+
+  // obtain file size:
+  fseek (spotify_log_file , 0 , SEEK_END);
+  lSize = ftell (spotify_log_file);
+  rewind (spotify_log_file);
+
+  // allocate memory to contain the whole file:
+  buffer = (char*) malloc (sizeof(char)*lSize);
+  if (buffer == NULL) {quit(2);}
+
+  // copy the file into the buffer:
+  result = fread (buffer,1,lSize,spotify_log_file);
+  if (result != lSize) {quit(3);}
+
+  return buffer;
+}
+
+// Render the text surface
+void
+renderText(SDL_Renderer * renderer)
+{
+    // Write our text into the surface
+    char* buffer = tailLogFile();
+    text_surf = TTF_RenderUTF8_Blended_Wrapped(font, buffer, text_color, text_square_pos_w);
+    free(buffer);
+    // Create texture from the surface
+    SDL_Texture *sprite = SDL_CreateTextureFromSurface(renderer, text_surf);
+    if (!sprite) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Couldn't create texture from text surface: %s\n", SDL_GetError());
+        SDL_FreeSurface(text_surf);
+        quit (-1);
+    }
+    // Set the position and size of source and destination rectangles
+    int actual_w = text_surf->w;
+    int actual_h = (text_surf->h < text_square_pos_h) ? text_surf->h : text_square_pos_h;
+    int actual_y = (text_surf->h < text_square_pos_h) ? 0 : (text_surf->h - text_square_pos_h);
+    SDL_Rect *srcrect = (SDL_Rect *)malloc(sizeof(SDL_Rect));
+    srcrect->x = 0;
+    srcrect->y = actual_y;
+    srcrect->w = actual_w;
+    srcrect->h = actual_h;
+    SDL_Rect *dstrect = (SDL_Rect *)malloc(sizeof(SDL_Rect));
+    dstrect->x = text_square_pos_x;
+    dstrect->y = text_square_pos_y;
+    dstrect->w = actual_w;
+    dstrect->h = actual_h;
+    // Blit the text onto the screen
+    SDL_RenderCopy(renderer, sprite, srcrect, dstrect);
+    // Free memory
+    SDL_FreeSurface(text_surf);
+    SDL_DestroyTexture(sprite);
+    free(dstrect);
+    free(srcrect);
+}
+
+// Render a sprite fullscreen
 void
 renderBackground(SDL_Renderer * renderer, SDL_Texture * sprite)
 {
@@ -78,17 +168,8 @@ renderBackground(SDL_Renderer * renderer, SDL_Texture * sprite)
     SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0xFF);
     SDL_RenderClear(renderer);
 
-    SDL_Rect *position = malloc(sizeof(SDL_Rect));
-    position->x = 0;
-    position->y = 0;
-    position->w = sprite_w;
-    position->h = sprite_h;
-
     /* Blit the sprite onto the screen */
-    SDL_RenderCopy(renderer, sprite, NULL, position);
-
-    /* Update the screen! */
-    SDL_RenderPresent(renderer);
+    SDL_RenderCopy(renderer, sprite, NULL, NULL);
 }
 
 // audio callback function
@@ -123,6 +204,9 @@ void loop()
     }
 
     renderBackground(renderer, sprite);
+    renderText(renderer);
+    /* Update the screen! */
+    SDL_RenderPresent(renderer);
 
 #ifdef __EMSCRIPTEN__
     if (done) {
@@ -135,7 +219,7 @@ void loop()
 void initAudio() {
     // Initialize SDL.
 	if (SDL_Init(SDL_INIT_AUDIO) < 0)
-			return 1;
+			quit(1);
 
 	static SDL_AudioSpec want; // the specs of our piece of music
 	SDL_memset(&want, 0, sizeof(want));
@@ -150,7 +234,7 @@ void initAudio() {
 	/* Open the audio device */
 	if ( SDL_OpenAudio(&want, NULL) < 0 ){
 	  SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Couldn't open audio: %s\n", SDL_GetError());
-	  exit(-1);
+	  quit(-1);
 	}
 
 	/* Start playing */
@@ -166,12 +250,12 @@ void openAudioBuffer() {
 #else
     // Make sure the env variable "http_proxy" is not set
 	unsetenv("http_proxy");
-    audio_buf = popen("/home/steam/librespot-org-build/arm-unknown-linux-gnueabihf/release/librespot -v --cache /var/cache --disable-audio-cache --name steamlink --disable-discovery --bitrate 320 --initial-volume 100 --backend pipe 2>/tmp/spotify.log", "r");
+    audio_buf = popen(LIBRESPOT_START_CMD, "r");
 #endif // TEST_MODE
 
 	if (audio_buf == NULL){
 	  SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Error starting librespot: %s\n", SDL_GetError());
-	  exit(-1);
+	  quit(-1);
 	}
 }
 
@@ -181,7 +265,7 @@ void closeAudioBuffer() {
     fclose(audio_buf);
 #else
 	// Send the SIGTERM signal to librespot
-	system("pidof /home/steam/librespot-org-build/arm-unknown-linux-gnueabihf/release/librespot | xargs kill");
+	system(LIBRESPOT_KILL_CMD);
 	// Close the pipe to librespot
 	pclose(audio_buf);
 #endif // TEST_MODE
@@ -194,31 +278,67 @@ void stopAudio() {
 	SDL_CloseAudio();
 }
 
+void openSpotifyLogFile() {
+
+#ifdef TEST_MODE
+    spotify_log_file = fopen("spotify.log", "r");
+#else
+    spotify_log_file = fopen(LIBRESPOT_LOG_FILE, "r");
+#endif // TEST_MODE
+
+	if (spotify_log_file == NULL){
+	  SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Error opening librespot log file: %s\n", SDL_GetError());
+	  quit(-1);
+	}
+}
+
+void closeSpotifyLogFile() {
+    fclose(spotify_log_file);
+}
+
+
+/* -- MAIN function -- */
+
 int
 main(int argc, char *argv[])
 {
+    /* SDL Init - Graphics */
     SDL_Window *window;
-
-    /* Enable standard application logging */
+    // Enable standard application logging
     SDL_LogSetPriority(SDL_LOG_CATEGORY_APPLICATION, SDL_LOG_PRIORITY_INFO);
-
-    if (SDL_CreateWindowAndRenderer(WINDOW_WIDTH, WINDOW_HEIGHT, 0, &window, &renderer) < 0) {
+    // Create window and renderer
+    if (SDL_CreateWindowAndRenderer(INITIAL_WINDOW_WIDTH, INITIAL_WINDOW_HEIGHT, SDL_WINDOW_FULLSCREEN_DESKTOP, &window, &renderer) < 0) {
         quit(2);
     }
-
+    // Compute text square dimensions
+    compute_text_square_dimensions(window);
     // Load the background image
-    if (LoadSprite("spotify2.bmp", renderer) < 0) {
+    if (LoadSprite(BACKGROUND_BMP_FILE, renderer) < 0) {
         quit(2);
     }
-
+    // Init subsystem with game controller support
     SDL_InitSubSystem( SDL_INIT_GAMECONTROLLER );
 
+    /* SDL Init - Audio */
+    // Start librespot and open audio buffer
     openAudioBuffer();
+    // Open audio device and start playback
     initAudio();
+
+    /* SDL Init - TTF */
+    if(TTF_Init() == -1)
+    {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Error in TTF_Init: %s\n", TTF_GetError());
+        quit(EXIT_FAILURE);
+    }
+    // Load Font file
+    font = TTF_OpenFont(FONT_FILE, FONT_SIZE);
+    // Load Spotify log file
+    openSpotifyLogFile();
+
 
     /* Main render loop */
     done = 0;
-
 #ifdef __EMSCRIPTEN__
     emscripten_set_main_loop(loop, 0, 1);
 #else
@@ -227,9 +347,17 @@ main(int argc, char *argv[])
     }
 #endif
 
+
+    /*SDL Close - TTF */
+    closeSpotifyLogFile();
+    TTF_CloseFont(font);
+    TTF_Quit();
+
+    /* SDL Close - Audio */
     stopAudio();
     closeAudioBuffer();
 
+    /* SDL Close - Graphics */
     SDL_QuitSubSystem( SDL_INIT_GAMECONTROLLER );
 
     quit(0);

@@ -19,10 +19,10 @@ As such, note that:
 ## Functionalities
 This code allows to build an app that you can install and run on your _steamlink_. Once it is installed, you can launch it directly from the _steamlink_ home menu.
 This app starts _librespot_ as a background program, and pipes the audio to the first audio device it finds.
-You juste have to use the _spotify connect_ (from your phone or a computer, using the official Spotify application) to start a playlist.
+You juste have to use _spotify connect_ (from your phone or a computer, using the official Spotify application) to start a song.
 Once you're done, you can exit the app by pressing any key on your keyboard or any buttons on your gamepad (should be compatible whith the Steam gamepad).
 
-**Be aware that this is all the app does for now! There is no current track or status information displayed, it's basically just a headless player, and the only thing displayed on the TV is a static image.**
+**Be aware that this is all the app does for now! Since the new version, the librespot logs are displayed, allowing you to know which track is being played. But still, there is no complex GUI with album cover or so, it's basically just a headless player with a very simple interface.**
 
 # Instructions
 ## Building
@@ -88,7 +88,7 @@ By default the app is configured to redirect _librespot_ logs into this file:
 If you have trouble using _spotify4steamlink_, you should start by having a look at this file ;).
 
 As I said earlier, you might also encounter troubles when exiting the app. For now, the only workaround is to unplug the _steamlink_, and then plug it back again.
-Still, during my tests, I noticed the problem don't seem to happen when you exit _while playing a song_.
+Still, during my tests, I noticed the problem seems **not to happen** if you exit **while playing a song**.
 Hopefully having this knowledge will prevent you troubles :).
 
 # Acknowledgements
