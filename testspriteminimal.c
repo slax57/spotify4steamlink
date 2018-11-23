@@ -68,8 +68,8 @@ void compute_text_square_dimensions(SDL_Window* window)
     // Converting dimensions from a 1920*1080 screen if necessary
     text_square_pos_x = 680 * window_w / 1920;
     text_square_pos_y = 126 * window_h / 1080;
-    text_square_pos_w = 1000 * window_w / 1920;
-    text_square_pos_h = 906 * window_h / 1080;
+    text_square_pos_w = 1050 * window_w / 1920;
+    text_square_pos_h = 832 * window_h / 1080;
 }
 
 int
@@ -122,6 +122,26 @@ char* tailLogFile()
   return buffer;
 }
 
+// Count the number of lines in log file
+int logLinesCount()
+{
+    rewind (spotify_log_file);
+
+    int count = 0;
+    char ch;
+
+    while(!feof(spotify_log_file))
+    {
+      ch = fgetc(spotify_log_file);
+      if(ch == '\n')
+      {
+        count++;
+      }
+    }
+
+    return count;
+}
+
 // Render the text surface
 void
 renderText(SDL_Renderer * renderer)
@@ -130,6 +150,10 @@ renderText(SDL_Renderer * renderer)
     char* buffer = tailLogFile();
     text_surf = TTF_RenderUTF8_Blended_Wrapped(font, buffer, text_color, text_square_pos_w);
     free(buffer);
+    if (text_surf == NULL) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Couldn't create text surface from char buffer: %s\n", SDL_GetError());
+        return;
+    }
     // Create texture from the surface
     SDL_Texture *sprite = SDL_CreateTextureFromSurface(renderer, text_surf);
     if (!sprite) {
@@ -138,9 +162,10 @@ renderText(SDL_Renderer * renderer)
         quit (-1);
     }
     // Set the position and size of source and destination rectangles
+    int log_lines = logLinesCount();
     int actual_w = text_surf->w;
     int actual_h = (text_surf->h < text_square_pos_h) ? text_surf->h : text_square_pos_h;
-    int actual_y = (text_surf->h < text_square_pos_h) ? 0 : (text_surf->h - text_square_pos_h);
+    int actual_y = ((text_surf->h - (log_lines * 2)) < text_square_pos_h) ? 0 : ((text_surf->h - (log_lines * 2)) - text_square_pos_h);
     SDL_Rect *srcrect = (SDL_Rect *)malloc(sizeof(SDL_Rect));
     srcrect->x = 0;
     srcrect->y = actual_y;
@@ -307,7 +332,12 @@ main(int argc, char *argv[])
     // Enable standard application logging
     SDL_LogSetPriority(SDL_LOG_CATEGORY_APPLICATION, SDL_LOG_PRIORITY_INFO);
     // Create window and renderer
-    if (SDL_CreateWindowAndRenderer(INITIAL_WINDOW_WIDTH, INITIAL_WINDOW_HEIGHT, SDL_WINDOW_FULLSCREEN_DESKTOP, &window, &renderer) < 0) {
+#ifdef TEST_MODE
+    Uint32 flags = SDL_WINDOW_MAXIMIZED;
+#else
+    Uint32 flags = SDL_WINDOW_FULLSCREEN_DESKTOP;
+#endif // TEST_MODE
+    if (SDL_CreateWindowAndRenderer(INITIAL_WINDOW_WIDTH, INITIAL_WINDOW_HEIGHT, flags, &window, &renderer) < 0) {
         quit(2);
     }
     // Compute text square dimensions

@@ -19,15 +19,17 @@ mkdir -p "${DESTDIR}"
 cp -v testspriteminimal "${DESTDIR}"
 cp -v spotify3.bmp "${DESTDIR}"
 cp -v consolas.ttf "${DESTDIR}"
-cp -v start_librespot.sh "${DESTDIR}"
-
+cp -v spotify4steamlink.sh "${DESTDIR}"
 cp -v icon2.png "${DESTDIR}/icon.png" 
+
+# Set spotify4steamlink.sh executable
+chmod +x "${DESTDIR}/spotify4steamlink.sh"
 
 # Create the table of contents and icon
 cat >"${DESTDIR}/toc.txt" <<__EOF__
 name=Spotify
 icon=icon.png
-run=testspriteminimal
+run=spotify4steamlink.sh
 __EOF__
 
 # Pack it up
