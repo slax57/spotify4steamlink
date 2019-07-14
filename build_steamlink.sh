@@ -12,7 +12,15 @@ cd "${TOP}"
 
 make $MAKE_J || exit 2
 
-export DESTDIR="${PWD}/steamlink/apps/spotify"
+export DESTDIR="${PWD}/steamlink/apps/spotify4steamlink"
+
+# Check that the librespot binaries are provided
+if [ ! -f ${PWD}/librespot-org-build/arm-unknown-linux-gnueabihf/release/librespot ]; then
+	echo "librespot binary is missing!"
+	echo "Please provide it in the 'librespot-org-build' folder"
+	echo "Exiting"
+	exit 10
+fi
 
 # Copy the files to the app directory
 mkdir -p "${DESTDIR}"
@@ -21,9 +29,13 @@ cp -v spotify3.bmp "${DESTDIR}"
 cp -v consolas.ttf "${DESTDIR}"
 cp -v spotify4steamlink.sh "${DESTDIR}"
 cp -v icon2.png "${DESTDIR}/icon.png" 
+cp -rv ${PWD}/librespot-org-build "${DESTDIR}/librespot-org-build"
 
 # Set spotify4steamlink.sh executable
 chmod +x "${DESTDIR}/spotify4steamlink.sh"
+
+# Set the librespot binaries executable
+chmod +x "${DESTDIR}/librespot-org-build/arm-unknown-linux-gnueabihf/release/librespot"
 
 # Create the table of contents and icon
 cat >"${DESTDIR}/toc.txt" <<__EOF__

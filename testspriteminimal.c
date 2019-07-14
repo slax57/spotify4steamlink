@@ -25,8 +25,8 @@
 
 #define AUDIO_SAMPLES           4096
 
-#define LIBRESPOT_START_CMD     "/home/steam/librespot-org-build/arm-unknown-linux-gnueabihf/release/librespot --cache /var/cache --disable-audio-cache --name steamlink --disable-discovery --bitrate 320 --initial-volume 85 --backend pipe 2>/tmp/spotify.log"
-#define LIBRESPOT_KILL_CMD      "pidof /home/steam/librespot-org-build/arm-unknown-linux-gnueabihf/release/librespot | xargs kill"
+#define LIBRESPOT_START_CMD     "/home/apps/spotify4steamlink/librespot-org-build/arm-unknown-linux-gnueabihf/release/librespot --cache /var/cache --disable-audio-cache --name steamlink --disable-discovery --bitrate 320 --initial-volume 85 --backend pipe 2>/tmp/spotify.log"
+#define LIBRESPOT_KILL_CMD      "pidof /home/apps/spotify4steamlink/librespot-org-build/arm-unknown-linux-gnueabihf/release/librespot | xargs kill"
 #define LIBRESPOT_LOG_FILE      "/tmp/spotify.log"
 
 #define BACKGROUND_BMP_FILE     "spotify3.bmp"
