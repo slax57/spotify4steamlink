@@ -20,8 +20,8 @@
 #include "SDL.h"
 #include "SDL_ttf.h"
 
-#define INITIAL_WINDOW_WIDTH    640
-#define INITIAL_WINDOW_HEIGHT   480
+#define INITIAL_WINDOW_WIDTH    1280
+#define INITIAL_WINDOW_HEIGHT   720
 
 #define AUDIO_SAMPLES           4096
 
@@ -35,7 +35,7 @@
 #define FONT_SIZE               18
 
 // Disable this flag when publishing to steamlink
-//#define TEST_MODE
+#define TEST_MODE
 
 
 /* -- Global variables -- */
@@ -65,11 +65,11 @@ void compute_text_square_dimensions(SDL_Window* window)
 {
     int window_w, window_h;
     SDL_GetWindowSize(window, &window_w, &window_h);
-    // Converting dimensions from a 1920*1080 screen if necessary
-    text_square_pos_x = 680 * window_w / 1920;
-    text_square_pos_y = 126 * window_h / 1080;
-    text_square_pos_w = 1050 * window_w / 1920;
-    text_square_pos_h = 832 * window_h / 1080;
+    // Converting dimensions from a 1280*720 screen if necessary
+    text_square_pos_x = 455 * window_w / 1280;
+    text_square_pos_y = 84 * window_h / 720;
+    text_square_pos_w = 700 * window_w / 1280;
+    text_square_pos_h = 555 * window_h / 720;
 }
 
 int
@@ -273,6 +273,8 @@ void openAudioBuffer() {
 #ifdef TEST_MODE
     audio_buf = fopen("sample.bin", "rb");
 #else
+	// Send the SIGTERM signal to librespot, to kill any pre-existing daemon still running
+	system(LIBRESPOT_KILL_CMD);
     // Make sure the env variable "http_proxy" is not set
 	unsetenv("http_proxy");
     audio_buf = popen(LIBRESPOT_START_CMD, "r");
@@ -333,7 +335,7 @@ main(int argc, char *argv[])
     SDL_LogSetPriority(SDL_LOG_CATEGORY_APPLICATION, SDL_LOG_PRIORITY_INFO);
     // Create window and renderer
 #ifdef TEST_MODE
-    Uint32 flags = SDL_WINDOW_MAXIMIZED;
+    Uint32 flags = SDL_WINDOW_SHOWN;
 #else
     Uint32 flags = SDL_WINDOW_FULLSCREEN_DESKTOP;
 #endif // TEST_MODE
