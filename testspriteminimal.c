@@ -35,7 +35,7 @@
 #define FONT_SIZE               18
 
 // Disable this flag when publishing to steamlink
-#define TEST_MODE
+//#define TEST_MODE
 
 
 /* -- Global variables -- */
