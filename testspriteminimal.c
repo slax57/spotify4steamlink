@@ -395,14 +395,14 @@ main(int argc, char *argv[])
     }
 #endif
 
+    /* SDL Close - Audio */
+    stopAudio();
+    closeAudioBuffer();
+
     /*SDL Close - TTF */
     closeSpotifyLogFile();
     TTF_CloseFont(font);
     TTF_Quit();
-
-    /* SDL Close - Audio */
-    stopAudio();
-    closeAudioBuffer();
 
     /* SDL Close - Graphics */
     SDL_QuitSubSystem( SDL_INIT_GAMECONTROLLER );
