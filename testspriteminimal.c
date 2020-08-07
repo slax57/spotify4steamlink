@@ -170,9 +170,10 @@ renderText(SDL_Renderer * renderer)
     // Set the position and size of source and destination rectangles
     int actual_w = text_surf->w;
     int actual_h = (text_surf->h < text_square_pos_h) ? text_surf->h : text_square_pos_h;
+    int actual_y = (((text_surf->h) * 0.9) < text_square_pos_h) ? 0 : (((text_surf->h) * 0.9) - text_square_pos_h);
     SDL_Rect *srcrect = (SDL_Rect *)malloc(sizeof(SDL_Rect));
     srcrect->x = 0;
-    srcrect->y = 0;
+    srcrect->y = actual_y;
     srcrect->w = actual_w;
     srcrect->h = actual_h;
     SDL_Rect *dstrect = (SDL_Rect *)malloc(sizeof(SDL_Rect));
