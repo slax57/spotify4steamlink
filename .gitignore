@@ -3,3 +3,4 @@ librespot-org-build/x86_64-unknown-linux-gnu
 main
 password.txt
 source/main.o
+track_id.txt

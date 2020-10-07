@@ -76,6 +76,16 @@ quit(int rc)
     exit(rc);
 }
 
+void logout(char *text) {
+    fputs(text, stdout);
+    fputs("\n", stdout);
+}
+
+void logerr(char *text) {
+    fputs(text, stderr);
+    fputs("\n", stderr);
+}
+
 int
 LoadSprite(char *file, SDL_Renderer *renderer)
 {
@@ -179,10 +189,25 @@ void displayPlaybackStatus(SDL_Renderer * renderer) {
 
 void displayCurrentTrackId(SDL_Renderer * renderer) {
     // Computing text to be written
-    char* buffer = getenv("TRACK_ID");
-    if (buffer > 0) {
+
+    // FIXME - Optimize file opening and closing
+    // FIXME - define track id length (22) as constant
+    char source[22];
+    FILE *fp = fopen("track_id.txt", "r");
+    if (fp != NULL) {
+        size_t newLen = fread(source, sizeof(char), 22, fp);
+        if ( ferror( fp ) != 0 ) {
+            logerr("Error reading file");
+        } else {
+            source[newLen++] = '\0'; /* Just to be safe. */
+        }
+
+        fclose(fp);
+    }
+
+    if (source > 0) {
         // Call displayText
-        displayText(renderer, buffer, 500, 400, 300);
+        displayText(renderer, source, 500, 400, 300);
     }
 }
 
@@ -254,16 +279,6 @@ void initAudio() {
 void stopAudio() {
     // shut everything down
 	SDL_CloseAudio();
-}
-
-void logout(char *text) {
-    fputs(text, stdout);
-    fputs("\n", stdout);
-}
-
-void logerr(char *text) {
-    fputs(text, stderr);
-    fputs("\n", stderr);
 }
 
 
