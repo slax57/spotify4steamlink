@@ -24,7 +24,7 @@ fi
 
 # Copy the files to the app directory
 mkdir -p "${DESTDIR}"
-cp -v testspriteminimal "${DESTDIR}"
+cp -v main "${DESTDIR}"
 cp -v spotify3.bmp "${DESTDIR}"
 cp -v consolas.ttf "${DESTDIR}"
 cp -v spotify4steamlink.sh "${DESTDIR}"

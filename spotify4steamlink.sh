@@ -1,1 +1,1 @@
-./testspriteminimal > /tmp/testspriteminimal.log 2>&1
+./main > /tmp/spotify4steamlink_main.log 2>&1

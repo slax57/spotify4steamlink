@@ -1,1 +1,3 @@
 librespot-org-build/arm-unknown-linux-gnueabihf
+librespot-org-build/x86_64-pc-windows-msvc
+*.dll

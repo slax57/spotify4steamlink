@@ -1,15 +1,23 @@
-# Source setenv.sh before running make
-#
+CC=gcc
+RM=rm
+CFLAGS=-I/usr/include/SDL2 -D_REENTRANT
+LDFLAGS=-lSDL2 -lSDL2_ttf
+EXEC=main
+SRC= $(wildcard source/*.c)
+OBJ= $(SRC:.c=.o)
 
-CFLAGS := -I$(MARVELL_ROOTFS)/usr/include/SDL2
-LDFLAGS := -lSDL2 -lSDL2_ttf
+all: $(EXEC)
 
-testspriteminimal: testspriteminimal.o
-	$(CC) -o $@ $< $(LDFLAGS)
+main: $(OBJ) 
+	$(CC) -o $@ $^ $(LDFLAGS)
+
+%.o: %.c
+	$(CC) -o $@ -c $< $(CFLAGS)
+
+.PHONY: clean mrproper
 
 clean:
-	$(RM) testspriteminimal.o
+	$(RM) source/*.o
 
-distclean: clean
-	$(RM) testspriteminimal
-	$(RM) -r steamlink
+mrproper: clean
+	$(RM) $(EXEC) 
