@@ -15,6 +15,7 @@
 #include <unistd.h>
 #include <sys/wait.h>
 #include <fcntl.h>
+#include <stdbool.h>
 
 #ifdef __EMSCRIPTEN__
 #include <emscripten/emscripten.h>
@@ -50,7 +51,7 @@
 /* -- Global variables -- */
 
 char *const paramList[] = {LIBRESPOT_BIN, "--disable-audio-cache", "--name", "steamlink", "--bitrate", "320", "--initial-volume", "85", "--backend", "pipe", NULL};
-char *const testParamList[] = {LIBRESPOT_BIN, "-u", "slax57", "--disable-audio-cache", "--name", "steamlink", "--bitrate", "320", "--initial-volume", "85", "--backend", "pipe", NULL};
+char *const testParamList[] = {LIBRESPOT_BIN, "-u", "slax57", "--disable-audio-cache", "--onevent", "./onevent.sh", "--name", "steamlink", "--bitrate", "320", "--initial-volume", "85", "--backend", "pipe", NULL};
 
 static SDL_Texture *sprite;
 static int sprite_w, sprite_h;
@@ -59,6 +60,11 @@ int done;
 static FILE *audio_buf; // global pointer to the audio buffer to be played
 int pipefd[2]; // Pipe file descriptor
 pid_t cpid; // Subprocess PID
+bool is_playing = false;
+char* lastTrackId = NULL;
+TTF_Font *font = NULL;
+SDL_Color text_color = {255, 255, 255}; // white
+SDL_Surface *text_surf = NULL;
 
 
 /* -- Functions -- */
@@ -120,6 +126,63 @@ void my_audio_callback(void *userdata, Uint8 *dest_stream, int len) {
         for (i=0; i<len; i++) {
             dest_stream[i] = 0;
         }
+        is_playing = false;
+    } else {
+        is_playing = true;
+    }
+}
+
+void displayText(SDL_Renderer * renderer, char* buffer, int pos_x, int pos_y, int text_w) {
+    // Create surface
+    text_surf = TTF_RenderUTF8_Blended_Wrapped(font, buffer, text_color, text_w);
+    if (text_surf == NULL) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Couldn't create text surface from char buffer: %s\n", SDL_GetError());
+        return;
+    }
+    // Create texture from the surface
+    SDL_Texture *sprite = SDL_CreateTextureFromSurface(renderer, text_surf);
+    if (!sprite) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Couldn't create texture from text surface: %s\n", SDL_GetError());
+        SDL_FreeSurface(text_surf);
+        quit (-1);
+    }
+    // Set the position and size of source and destination rectangles
+    SDL_Rect *srcrect = (SDL_Rect *)malloc(sizeof(SDL_Rect));
+    srcrect->x = 0;
+    srcrect->y = 0;
+    srcrect->w = text_surf->w;
+    srcrect->h = text_surf->h;
+    SDL_Rect *dstrect = (SDL_Rect *)malloc(sizeof(SDL_Rect));
+    dstrect->x = pos_x;
+    dstrect->y = pos_y;
+    dstrect->w = text_surf->w;
+    dstrect->h = text_surf->h;
+    // Blit the text onto the screen
+    SDL_RenderCopy(renderer, sprite, srcrect, dstrect);// Free memory
+    SDL_FreeSurface(text_surf);
+    SDL_DestroyTexture(sprite);
+    free(dstrect);
+    free(srcrect);
+}
+
+void displayPlaybackStatus(SDL_Renderer * renderer) {
+    // Computing text to be written
+    char* buffer;
+    if (is_playing) {
+        buffer = "Playing";
+    } else {
+        buffer = "Paused";
+    }
+    // Call displayText
+    displayText(renderer, buffer, 500, 300, 300);
+}
+
+void displayCurrentTrackId(SDL_Renderer * renderer) {
+    // Computing text to be written
+    char* buffer = getenv("TRACK_ID");
+    if (buffer > 0) {
+        // Call displayText
+        displayText(renderer, buffer, 500, 400, 300);
     }
 }
 
@@ -141,7 +204,15 @@ void loop()
         }
     }
 
+    // render background image
     renderBackground(renderer, sprite);
+
+    // display playback status
+    displayPlaybackStatus(renderer);
+
+    // display current track id
+    displayCurrentTrackId(renderer);
+
     /* Update the screen! */
     SDL_RenderPresent(renderer);
 
@@ -306,6 +377,15 @@ main(int argc, char *argv[])
 
     logout("parent - TTF initialized!");
 
+    // Load Font file
+    font = TTF_OpenFont(FONT_FILE, FONT_SIZE);
+    if(font < 0) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Error while creating font: %s\n", TTF_GetError());
+        quit(EXIT_FAILURE);
+    }
+
+    logout("parent - font created");
+
     /* Main render loop */
     done = 0;
 #ifdef __EMSCRIPTEN__
@@ -334,6 +414,7 @@ main(int argc, char *argv[])
     logout("parent - audio stopped");
 
     /*SDL Close - TTF */
+    TTF_CloseFont(font);
     TTF_Quit();
 
     logout("parent - TTF stopped");
