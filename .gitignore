@@ -1,6 +1,6 @@
 librespot-org-build/arm-unknown-linux-gnueabihf
 librespot-org-build/x86_64-unknown-linux-gnu
 main
+onevent
 password.txt
-source/main.o
-track_id.txt
+source/*.o

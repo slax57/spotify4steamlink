@@ -16,6 +16,9 @@
 #include <sys/wait.h>
 #include <fcntl.h>
 #include <stdbool.h>
+#include <sys/types.h>
+#include <sys/ipc.h>
+#include <sys/shm.h>
 
 #ifdef __EMSCRIPTEN__
 #include <emscripten/emscripten.h>
@@ -28,9 +31,10 @@
 #define INITIAL_WINDOW_HEIGHT   720
 
 #define AUDIO_SAMPLES           4096
+#define TRACK_ID_LENGTH         22
 
 #define LIBRESPOT_BIN_STEAML    "/home/apps/spotify4steamlink/librespot-org-build/arm-unknown-linux-gnueabihf/release/librespot"
-#define LIBRESPOT_BIN_TEST      "/home/osboxes/workspace/spotify4steamlink/librespot-org-build/x86_64-unknown-linux-gnu/release/librespot"
+#define LIBRESPOT_BIN_TEST      "./librespot-org-build/x86_64-unknown-linux-gnu/release/librespot"
 #define LIBRESPOT_KILL_CMD      "killall librespot"
 
 #define BACKGROUND_BMP_FILE     "romfs/data/spotify3.bmp"
@@ -51,7 +55,7 @@
 /* -- Global variables -- */
 
 char *const paramList[] = {LIBRESPOT_BIN, "--disable-audio-cache", "--name", "steamlink", "--bitrate", "320", "--initial-volume", "85", "--backend", "pipe", NULL};
-char *const testParamList[] = {LIBRESPOT_BIN, "-u", "slax57", "--disable-audio-cache", "--onevent", "./onevent.sh", "--name", "steamlink", "--bitrate", "320", "--initial-volume", "85", "--backend", "pipe", NULL};
+char *const testParamList[] = {LIBRESPOT_BIN, "-u", "slax57", "--disable-audio-cache", "--onevent", "./onevent", "--name", "steamlink", "--bitrate", "320", "--initial-volume", "85", "--backend", "pipe", NULL};
 
 static SDL_Texture *sprite;
 static int sprite_w, sprite_h;
@@ -62,9 +66,11 @@ int pipefd[2]; // Pipe file descriptor
 pid_t cpid; // Subprocess PID
 bool is_playing = false;
 char* lastTrackId = NULL;
+char* currentTrackId = NULL;
 TTF_Font *font = NULL;
 SDL_Color text_color = {255, 255, 255}; // white
 SDL_Surface *text_surf = NULL;
+key_t shm_key = 5678; // shared memory key
 
 
 /* -- Functions -- */
@@ -188,26 +194,9 @@ void displayPlaybackStatus(SDL_Renderer * renderer) {
 }
 
 void displayCurrentTrackId(SDL_Renderer * renderer) {
-    // Computing text to be written
-
-    // FIXME - Optimize file opening and closing
-    // FIXME - define track id length (22) as constant
-    char source[22];
-    FILE *fp = fopen("track_id.txt", "r");
-    if (fp != NULL) {
-        size_t newLen = fread(source, sizeof(char), 22, fp);
-        if ( ferror( fp ) != 0 ) {
-            logerr("Error reading file");
-        } else {
-            source[newLen++] = '\0'; /* Just to be safe. */
-        }
-
-        fclose(fp);
-    }
-
-    if (source > 0) {
+    if ((currentTrackId > 0) && (strlen(currentTrackId) == TRACK_ID_LENGTH)) {
         // Call displayText
-        displayText(renderer, source, 500, 400, 300);
+        displayText(renderer, currentTrackId, 500, 400, 300);
     }
 }
 
@@ -400,6 +389,17 @@ main(int argc, char *argv[])
     }
 
     logout("parent - font created");
+
+    // Init shared memory
+    int shmid;
+    if ((shmid = shmget(shm_key, TRACK_ID_LENGTH, 0666)) < 0) {
+        perror("shmget");
+        exit(1);
+    }
+    if ((currentTrackId = shmat(shmid, NULL, 0)) == (char *) -1) {
+        perror("shmat");
+        exit(1);
+    }
 
     /* Main render loop */
     done = 0;

@@ -2,22 +2,25 @@ CC=gcc
 RM=rm
 CFLAGS=-I/usr/include/SDL2 -D_REENTRANT
 LDFLAGS=-lSDL2 -lSDL2_ttf
-EXEC=main
-SRC= $(wildcard source/*.c)
-OBJ= $(SRC:.c=.o)
 
-all: $(EXEC)
+all: main onevent
 
-main: $(OBJ) 
-	$(CC) -o $@ $^ $(LDFLAGS)
+main: source/main.o
+	$(CC) -o main source/main.o $(LDFLAGS)
 
-%.o: %.c
-	$(CC) -o $@ -c $< $(CFLAGS)
+source/main.o: source/main.c
+	$(CC) -o source/main.o -c source/main.c $(CFLAGS)
+
+onevent: source/onevent.o
+	$(CC) -o onevent source/onevent.o $(LDFLAGS)
+
+source/onevent.o: source/onevent.c
+	$(CC) -o source/onevent.o -c source/onevent.c $(CFLAGS)
 
 .PHONY: clean mrproper
 
 clean:
-	$(RM) source/*.o
+	$(RM) source/main.o source/onevent.o
 
 mrproper: clean
-	$(RM) $(EXEC) 
+	$(RM) main onevent
